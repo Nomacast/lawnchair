@@ -1,0 +1,67 @@
+name: Lawnchair N
+
+# Builds the Nomacast flavour of Lawnchair (package app.lawnchair.nomacast),
+# signed with the fork's committed key, and publishes the APK as a GitHub
+# Release so it can be downloaded straight from a phone.
+
+on:
+  push:
+    branches:
+      - 'n-stable'
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: lawnchair-n
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+      - uses: actions/setup-java@v6
+        with:
+          distribution: 'zulu'
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-encryption-key: Da25KUVSE5jbGds2zXmfXw==
+      - name: Build APK
+        run: |
+          set -o pipefail
+          ./gradlew assembleLawnWithQuickstepGithubRelease 2>&1 | tee build.log
+      - name: Report build errors as annotations
+        if: failure()
+        run: |
+          # Surface the failure reason through the check-run annotations API.
+          { grep -E "^e: " build.log | head -10; grep -A15 "What went wrong" build.log; } \
+            | while IFS= read -r line; do echo "::error::${line:0:900}"; done || true
+      - name: Rename APK
+        run: |
+          mkdir -p out
+          cp "$(find build/outputs/apk -name '*.apk' | head -1)" out/LawnchairN.apk
+          # R8 mapping, needed to read crash stack traces from release builds
+          cp "$(find build/outputs/mapping -name 'mapping.txt' | head -1)" out/mapping.txt || true
+          ls -la out
+      - uses: actions/upload-artifact@v7
+        with:
+          name: LawnchairN
+          path: out/LawnchairN.apk
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="n-${{ github.run_number }}"
+          gh release create "$TAG" out/LawnchairN.apk out/mapping.txt \
+            --repo "${{ github.repository }}" \
+            --title "Lawnchair N #${{ github.run_number }}" \
+            --notes "Build automatique ($(git log -1 --format=%h)) : $(git log -1 --format=%s)" \
+            --latest

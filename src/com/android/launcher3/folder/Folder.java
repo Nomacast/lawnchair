@@ -764,6 +764,11 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
         cancelRunningAnimations();
         FolderAnimationManager fam = new FolderAnimationManager(this, true /* isOpening */);
         AnimatorSet anim = fam.getAnimator();
+        // Nomacast: frosted backdrop behind the open folder
+        Animator backdropAnim = FolderBackdrop.createAnimator(this, /* isOpening */ true);
+        if (backdropAnim != null) {
+            anim.play(backdropAnim);
+        }
         anim.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationStart(Animator animation) {
@@ -917,6 +922,10 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
 
         cancelRunningAnimations();
         AnimatorSet a = new FolderAnimationManager(this, false /* isOpening */).getAnimator();
+        Animator backdropAnim = FolderBackdrop.createAnimator(this, /* isOpening */ false);
+        if (backdropAnim != null) {
+            a.play(backdropAnim);
+        }
         a.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationStart(Animator animation) {
@@ -955,6 +964,7 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
     }
 
     private void closeComplete(boolean wasAnimated) {
+        FolderBackdrop.clear(this);
         // TODO: Clear all active animations.
         BaseDragLayer parent = (BaseDragLayer) getParent();
         if (parent != null) {
@@ -1254,6 +1264,19 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
         mActivityContext.updateOpenFolderPosition(inOutPosition, sTempRect, width, height);
         left = inOutPosition[0];
         top = inOutPosition[1];
+
+        // Nomacast: open folders centred on screen (HyperOS-like) instead of over their icon.
+        // The pivot below is still derived from the icon, so the folder grows out of it.
+        try {
+            if (mActivityContext instanceof Launcher && parent.getWidth() > 0
+                    && parent.getHeight() > 0 && width <= parent.getWidth()
+                    && height <= parent.getHeight()) {
+                left = (parent.getWidth() - width) / 2;
+                top = (parent.getHeight() - height) / 2;
+            }
+        } catch (Throwable t) {
+            Log.e(TAG, "Could not centre folder", t);
+        }
 
         int folderPivotX = width / 2 + (centeredLeft - left);
         int folderPivotY = height / 2 + (centeredTop - top);

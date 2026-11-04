@@ -157,7 +157,8 @@ android {
     defaultConfig {
         // Lawnchair Launcher 15.0 Beta 3
         // See CONTRIBUTING.md#versioning-scheme
-        versionCode 15_00_02_03_00
+        // Nomacast: above the earlier 16-dev based test builds so it installs over them
+        versionCode 16_00_02_01_10
         versionName "${versionDisplayName}"
         buildConfigField "String", "VERSION_DISPLAY_NAME", "\"${versionDisplayName}\""
         buildConfigField "String", "MAJOR_VERSION", "\"${majorVersion}\""
@@ -215,7 +216,11 @@ android {
     def releaseSigning
     try {
         def keystoreProperties = new Properties()
-        keystoreProperties.load(rootProject.file("keystore.properties").newInputStream())
+        // Nomacast: fall back to the fork's committed signing key so every build
+        // (local or CI) shares one stable signature and can update in place.
+        def keystoreFile = rootProject.file("keystore.properties")
+        if (!keystoreFile.exists()) keystoreFile = rootProject.file("nomacast/signing.properties")
+        keystoreProperties.load(keystoreFile.newInputStream())
         releaseSigning = signingConfigs.create("release") {
             keyAlias keystoreProperties['keyAlias']
             keyPassword keystoreProperties['keyPassword']
@@ -248,7 +253,7 @@ android {
         }
 
         release {
-            resValue("string", "derived_app_name", "Lawnchair")
+            resValue("string", "derived_app_name", "Lawnchair N")
             minifyEnabled true
             shrinkResources true
             proguardFiles proguardFilesFromAosp + "proguard.pro"
@@ -278,7 +283,8 @@ android {
         }
 
         github {
-            applicationId 'app.lawnchair'
+            // Nomacast: own package so it installs next to the stock Lawnchair
+            applicationId 'app.lawnchair.nomacast'
             dimension "channel"
         }
 
