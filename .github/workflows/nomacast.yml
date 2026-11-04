@@ -42,10 +42,8 @@ jobs:
         if: failure()
         run: |
           # Surface the failure reason through the check-run annotations API.
-          grep -E "^e: |error:|What went wrong|FAILURE|Exception|> " build.log \
-            | grep -v "^> Task" | head -20 \
+          { grep -E "^e: " build.log | head -10; grep -A15 "What went wrong" build.log; } \
             | while IFS= read -r line; do echo "::error::${line:0:900}"; done || true
-          tail -5 build.log | while IFS= read -r line; do echo "::warning::${line:0:900}"; done || true
       - name: Rename APK
         run: |
           mkdir -p out
