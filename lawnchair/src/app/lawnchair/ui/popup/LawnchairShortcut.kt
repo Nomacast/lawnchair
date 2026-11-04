@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import app.lawnchair.LawnchairLauncher
+import app.lawnchair.allapps.LawnchairAlphabeticalAppsList
 import app.lawnchair.data.folder.service.FolderService
 import app.lawnchair.preferences2.ReloadHelper
 import app.lawnchair.override.CustomizeAppDialog
@@ -173,6 +174,10 @@ class LawnchairShortcut {
                                             service.updateFolderWithItems(folder.id, folder.title.toString(), without)
                                         }
                                     }
+                                    // Refresh the drawer immediately with the new folder contents
+                                    val fresh = service.getAllFolders()
+                                    (launcher.appsView.personalAppList as? LawnchairAlphabeticalAppsList<*>)
+                                        ?.setFolders(fresh)
                                     ReloadHelper(launcher).reloadGrid()
                                 } catch (t: Throwable) {
                                     Log.e("LawnchairShortcut", "Failed to move app to folder", t)

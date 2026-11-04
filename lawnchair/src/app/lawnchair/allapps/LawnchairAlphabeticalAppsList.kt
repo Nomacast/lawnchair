@@ -67,6 +67,14 @@ class LawnchairAlphabeticalAppsList<T>(
         }
     }
 
+    /** Nomacast: push fresh drawer folders right away (e.g. after "Move to folder"). */
+    fun setFolders(folders: List<FolderInfo>) {
+        folderList = folders
+            .sortedBy { folderOrder.indexOf(it.id) }
+            .toMutableList()
+        onAppsUpdated()
+    }
+
     override fun updateItemFilter(itemFilter: Predicate<ItemInfo>?) {
         mItemFilter = Predicate { info ->
             require(info is AppInfo) { "`info` must be an instance of `AppInfo`." }
