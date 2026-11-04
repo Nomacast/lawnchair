@@ -1418,10 +1418,14 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
 
         // Nomacast: open folders centred on screen (HyperOS-like) instead of over their icon.
         // The pivot below is still derived from the icon, so the folder grows out of it.
-        if (mActivityContext instanceof Launcher && parent.getWidth() > 0
-                && parent.getHeight() > 0) {
-            left = Math.max(0, (parent.getWidth() - width) / 2);
-            top = Math.max(0, (parent.getHeight() - height) / 2);
+        try {
+            if (mActivityContext instanceof Launcher && parent.getWidth() > 0
+                    && parent.getHeight() > 0) {
+                left = Math.max(0, (parent.getWidth() - width) / 2);
+                top = Math.max(0, (parent.getHeight() - height) / 2);
+            }
+        } catch (Throwable t) {
+            Log.e(TAG, "Could not centre folder", t);
         }
 
         int folderPivotX = width / 2 + (centeredLeft - left);

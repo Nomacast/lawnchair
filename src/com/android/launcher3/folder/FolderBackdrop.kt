@@ -18,12 +18,15 @@ import android.graphics.RenderEffect
 import android.graphics.Shader
 import android.os.Build
 import android.view.View
+import android.util.Log
 import android.view.animation.PathInterpolator
 import java.lang.ref.WeakReference
 import com.android.launcher3.Launcher
 import com.android.launcher3.LauncherState
 
 object FolderBackdrop {
+
+    private const val TAG = "FolderBackdrop"
 
     /** Blur radius in dp once the folder is fully open. */
     private const val MAX_BLUR_DP = 22f
@@ -63,7 +66,14 @@ object FolderBackdrop {
      * the effect is unsupported (pre Android 12, or not hosted by the main launcher).
      */
     @JvmStatic
-    fun createAnimator(folder: Folder, isOpening: Boolean): Animator? {
+    fun createAnimator(folder: Folder, isOpening: Boolean): Animator? = try {
+        createAnimatorInternal(folder, isOpening)
+    } catch (t: Throwable) {
+        Log.e(TAG, "Could not create backdrop animator", t)
+        null
+    }
+
+    private fun createAnimatorInternal(folder: Folder, isOpening: Boolean): Animator? {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return null
         val views = if (isOpening || activeTargets.isEmpty()) targetsFor(folder) else activeTargets
         if (views.isEmpty()) return null
@@ -73,7 +83,13 @@ object FolderBackdrop {
             .apply {
                 duration = if (isOpening) OPEN_DURATION_MS else CLOSE_DURATION_MS
                 interpolator = EMPHASIZED
-                addUpdateListener { apply(views, it.animatedValue as Float, maxRadius) }
+                addUpdateListener {
+                    try {
+                        apply(views, it.animatedValue as Float, maxRadius)
+                    } catch (t: Throwable) {
+                        Log.e(TAG, "Backdrop update failed", t)
+                    }
+                }
                 addListener(object : AnimatorListenerAdapter() {
                     override fun onAnimationStart(animation: Animator) {
                         if (isOpening) {
@@ -109,7 +125,11 @@ object FolderBackdrop {
 
     private fun clearViews(views: List<View>) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-        views.forEach { it.setRenderEffect(null) }
+        try {
+            views.forEach { it.setRenderEffect(null) }
+        } catch (t: Throwable) {
+            Log.e(TAG, "Could not clear backdrop", t)
+        }
     }
 
     private fun apply(views: List<View>, progress: Float, maxRadius: Float) {
