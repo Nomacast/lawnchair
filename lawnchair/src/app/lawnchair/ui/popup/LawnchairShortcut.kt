@@ -17,7 +17,10 @@ import android.view.View
 import android.widget.Toast
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
 import app.lawnchair.LawnchairLauncher
+import app.lawnchair.data.folder.service.FolderService
+import app.lawnchair.preferences2.ReloadHelper
 import app.lawnchair.override.CustomizeAppDialog
 import app.lawnchair.preferences2.PreferenceManager2
 import app.lawnchair.views.ComposeBottomSheet
@@ -35,6 +38,7 @@ import com.android.launcher3.util.ComponentKey
 import com.android.launcher3.util.PackageManagerHelper
 import com.patrykmichalik.opto.core.firstBlocking
 import java.net.URISyntaxException
+import kotlinx.coroutines.launch
 
 class LawnchairShortcut {
 
@@ -69,6 +73,16 @@ class LawnchairShortcut {
                     return@Factory null
                 }
                 UnInstall(activity, itemInfo, view)
+            }
+
+        /** Nomacast: file an app into one of the app drawer folders, from its long-press menu. */
+        val MOVE_TO_DRAWER_FOLDER =
+            SystemShortcut.Factory { activity: LawnchairLauncher, itemInfo: ItemInfo, originalView: View ->
+                if (itemInfo !is ModelAppInfo) {
+                    null
+                } else {
+                    MoveToDrawerFolder(activity, itemInfo, originalView)
+                }
             }
 
         val PAUSE_APPS = SystemShortcut.Factory { activity: LawnchairLauncher, itemInfo: ItemInfo, originalView: View ->
@@ -112,6 +126,64 @@ class LawnchairShortcut {
             } else {
                 Toast.makeText(launcher, R.string.activity_not_found, Toast.LENGTH_SHORT).show()
                 AbstractFloatingView.closeAllOpenViews(launcher)
+            }
+        }
+    }
+
+    class MoveToDrawerFolder(
+        private val launcher: LawnchairLauncher,
+        private val appInfo: ModelAppInfo,
+        originalView: View,
+    ) : SystemShortcut<LawnchairLauncher>(
+        R.drawable.ic_folder,
+        R.string.nomacast_move_to_folder,
+        launcher,
+        appInfo,
+        originalView,
+    ) {
+        override fun onClick(v: View) {
+            AbstractFloatingView.closeAllOpenViews(launcher)
+            launcher.lifecycleScope.launch {
+                try {
+                    val service = FolderService.INSTANCE.get(launcher)
+                    val folders = service.getAllFolders()
+                    if (folders.isEmpty()) {
+                        Toast.makeText(launcher, R.string.nomacast_no_drawer_folder, Toast.LENGTH_LONG).show()
+                        return@launch
+                    }
+                    val key = appInfo.toComponentKey()
+                    val inAFolder = folders.any { f ->
+                        f.getContents().any { (it as? ModelAppInfo)?.toComponentKey() == key }
+                    }
+                    val labels = folders.map { it.title.toString() } +
+                        (if (inAFolder) listOf(launcher.getString(R.string.nomacast_remove_from_folder)) else emptyList())
+
+                    AlertDialog.Builder(launcher)
+                        .setTitle(R.string.nomacast_move_to_folder)
+                        .setItems(labels.toTypedArray()) { _, which ->
+                            val target = folders.getOrNull(which) // null = "remove from folder"
+                            launcher.lifecycleScope.launch {
+                                try {
+                                    folders.forEach { folder ->
+                                        val apps = folder.getContents().filterIsInstance<ModelAppInfo>()
+                                        val without = apps.filter { it.toComponentKey() != key }
+                                        if (folder.id == target?.id) {
+                                            service.updateFolderWithItems(folder.id, folder.title.toString(), without + appInfo)
+                                        } else if (without.size != apps.size) {
+                                            service.updateFolderWithItems(folder.id, folder.title.toString(), without)
+                                        }
+                                    }
+                                    ReloadHelper(launcher).reloadGrid()
+                                } catch (t: Throwable) {
+                                    Log.e("LawnchairShortcut", "Failed to move app to folder", t)
+                                }
+                            }
+                        }
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .show()
+                } catch (t: Throwable) {
+                    Log.e("LawnchairShortcut", "Failed to list drawer folders", t)
+                }
             }
         }
     }

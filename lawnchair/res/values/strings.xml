@@ -921,4 +921,8 @@
     <string name="grant_requested_permissions_tap">Tap to grant permissions</string>
     <!-- Message shown when all home screen views are removed -->
     <string name="home_screen_all_views_removed_msg">Home screen cleared</string>
+    <!-- Nomacast -->
+    <string name="nomacast_move_to_folder">Move to folder</string>
+    <string name="nomacast_remove_from_folder">Remove from folder</string>
+    <string name="nomacast_no_drawer_folder">No app drawer folder yet. Create one in Settings › App drawer › Folders.</string>
 </resources>

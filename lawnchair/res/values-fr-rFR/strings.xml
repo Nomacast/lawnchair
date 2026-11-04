@@ -725,4 +725,7 @@
     <string name="grant_requested_permissions_tap">Appuyez pour accorder les autorisations</string>
     <!-- Message shown when all home screen views are removed -->
     <string name="home_screen_all_views_removed_msg">Écran d\'accueil nettoyé</string>
+    <string name="nomacast_move_to_folder">Ranger dans un dossier</string>
+    <string name="nomacast_remove_from_folder">Retirer du dossier</string>
+    <string name="nomacast_no_drawer_folder">Aucun dossier dans le tiroir. Créez-en un dans Réglages › Tiroir d’applications › Dossiers.</string>
 </resources>
