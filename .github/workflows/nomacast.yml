@@ -60,7 +60,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="n-${{ github.run_number }}"
-          gh release create "$TAG" out/LawnchairN.apk out/mapping.txt \
+          gh release create "$TAG" out/LawnchairN.apk out/mapping.txt --target "${{ github.sha }}" \
             --repo "${{ github.repository }}" \
             --title "Lawnchair N #${{ github.run_number }}" \
             --notes "Build automatique ($(git log -1 --format=%h)) : $(git log -1 --format=%s)" \
