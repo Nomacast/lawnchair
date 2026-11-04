@@ -1,0 +1,55 @@
+name: Lawnchair N
+
+# Builds the Nomacast flavour of Lawnchair (package app.lawnchair.nomacast),
+# signed with the fork's committed key, and publishes the APK as a GitHub
+# Release so it can be downloaded straight from a phone.
+
+on:
+  push:
+    branches:
+      - '16-dev'
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: lawnchair-n
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build APK
+        run: ./gradlew assembleLawnWithQuickstepGithubRelease
+      - name: Rename APK
+        run: |
+          mkdir -p out
+          cp "$(find build/outputs/apk -name '*.apk' | head -1)" out/LawnchairN.apk
+          ls -la out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LawnchairN
+          path: out/LawnchairN.apk
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="n-${{ github.run_number }}"
+          gh release create "$TAG" out/LawnchairN.apk \
+            --repo "${{ github.repository }}" \
+            --title "Lawnchair N #${{ github.run_number }}" \
+            --notes "Build automatique ($(git log -1 --format=%h)) : $(git log -1 --format=%s)" \
+            --latest

@@ -378,6 +378,11 @@ public class BaseDepthControllerImpl implements BaseDepthController {
         if (!Utilities.ATLEAST_S) {
             return false;
         }
+        // Nomacast: an open folder owns the workspace RenderEffect (frosted backdrop); the
+        // folder's wallpaper-zoom animation must not wipe it every frame.
+        if (com.android.launcher3.folder.FolderBackdrop.isActive()) {
+            return true;
+        }
         StateManager<LauncherState, Launcher> stateManager = mLauncher.getStateManager();
         LauncherState settledState = stateManager.getState();
 

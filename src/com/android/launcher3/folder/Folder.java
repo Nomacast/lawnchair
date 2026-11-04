@@ -886,6 +886,11 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
 
         AnimatorSet animatorSet = getFolderAnimationManager()
                 .createAnimatorSet(/* isOpening */ true);
+        // Nomacast: frosted backdrop behind the open folder
+        Animator backdropAnim = FolderBackdrop.createAnimator(this, /* isOpening */ true);
+        if (backdropAnim != null) {
+            animatorSet.play(backdropAnim);
+        }
 
         animatorSet.addListener(new AnimatorListenerAdapter() {
             @Override
@@ -1057,6 +1062,10 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
         cancelRunningAnimations();
         AnimatorSet animatorSet = getFolderAnimationManager()
                 .createAnimatorSet(/* isOpening */ false);
+        Animator backdropAnim = FolderBackdrop.createAnimator(this, /* isOpening */ false);
+        if (backdropAnim != null) {
+            animatorSet.play(backdropAnim);
+        }
 
         animatorSet.addListener(new AnimatorListenerAdapter() {
             @Override
@@ -1097,6 +1106,7 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
 
     private void closeComplete(boolean wasAnimated) {
         mIsOpen = false;
+        FolderBackdrop.clear(this);
 
         // TODO: Clear all active animations.
         BaseDragLayer parent = (BaseDragLayer) getParent();
@@ -1405,6 +1415,14 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
         mActivityContext.updateOpenFolderPosition(inOutPosition, sTempRect, width, height);
         left = inOutPosition[0];
         top = inOutPosition[1];
+
+        // Nomacast: open folders centred on screen (HyperOS-like) instead of over their icon.
+        // The pivot below is still derived from the icon, so the folder grows out of it.
+        if (mActivityContext instanceof Launcher && parent.getWidth() > 0
+                && parent.getHeight() > 0) {
+            left = Math.max(0, (parent.getWidth() - width) / 2);
+            top = Math.max(0, (parent.getHeight() - height) / 2);
+        }
 
         int folderPivotX = width / 2 + (centeredLeft - left);
         int folderPivotY = height / 2 + (centeredTop - top);
