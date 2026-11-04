@@ -1580,7 +1580,9 @@ public class DeviceProfile {
         float contentUsedWidth = folderCellWidthPx * numFolderColumns
                 + ((numFolderColumns - 1) * folderCellLayoutBorderSpacePx.x)
                 + folderContentPaddingLeftRight * 2;
-        int contentMaxWidth = availableWidthPx - totalWorkspacePadding.x;
+        // Nomacast: keep a visible side margin around open folders (≈4% each side), so a wide
+        // folder never touches or overflows the screen edges.
+        int contentMaxWidth = (int) (availableWidthPx * 0.92f) - totalWorkspacePadding.x;
         float scaleX = contentMaxWidth / contentUsedWidth;
 
         float scale = Math.min(scaleX, scaleY);
