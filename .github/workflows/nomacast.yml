@@ -48,6 +48,8 @@ jobs:
         run: |
           mkdir -p out
           cp "$(find build/outputs/apk -name '*.apk' | head -1)" out/LawnchairN.apk
+          # R8 mapping, needed to read crash stack traces from release builds
+          cp "$(find build/outputs/mapping -name 'mapping.txt' | head -1)" out/mapping.txt || true
           ls -la out
       - uses: actions/upload-artifact@v7
         with:
@@ -58,7 +60,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="n-${{ github.run_number }}"
-          gh release create "$TAG" out/LawnchairN.apk \
+          gh release create "$TAG" out/LawnchairN.apk out/mapping.txt \
             --repo "${{ github.repository }}" \
             --title "Lawnchair N #${{ github.run_number }}" \
             --notes "Build automatique ($(git log -1 --format=%h)) : $(git log -1 --format=%s)" \
