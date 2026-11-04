@@ -106,6 +106,13 @@ class LawnchairApp : Application() {
     }
 
     fun renameRestoredDb(dbName: String) {
+        // Nomacast: a backup restored in the previous process left a marker; now that the
+        // restored preferences and grid are loaded, flag the restore so RestoreDbTask runs.
+        val marker = java.io.File(filesDir, LawnchairBackup.PENDING_RESTORE_MARKER)
+        if (marker.exists()) {
+            marker.delete()
+            com.android.launcher3.provider.RestoreDbTask.setPending(this)
+        }
         val restoredDbFile = getDatabasePath(LawnchairBackup.RESTORED_DB_FILE_NAME)
         if (!restoredDbFile.exists()) return
         val dbFile = getDatabasePath(dbName)

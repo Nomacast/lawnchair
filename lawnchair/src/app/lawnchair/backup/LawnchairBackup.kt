@@ -81,8 +81,43 @@ class LawnchairBackup(
         DeviceGridState(info.gridState).writeToPrefs(context, true)
         readZip(handlers)
 
+        // Nomacast fix: the running process still holds the *old* grid and preferences in
+        // memory, so opening the DB here would file the restored layout under the old grid's
+        // name (and any preference write would clobber the restored files). Instead, name the
+        // restored DB after the grid stored in the restored preferences, and let the next
+        // launch (after the restart that follows) finish the restore with fresh state.
+        val restoredDb = context.getDatabasePath(RESTORED_DB_FILE_NAME)
+        val targetDbName = restoredGridDbName(context)
+        if (contents.hasFlag(INCLUDE_LAYOUT_AND_SETTINGS) && restoredDb.exists() && targetDbName != null) {
+            val target = context.getDatabasePath(targetDbName)
+            target.delete()
+            File(target.path + "-journal").delete()
+            if (restoredDb.renameTo(target)) {
+                File(context.filesDir, PENDING_RESTORE_MARKER).writeText("1")
+                return
+            }
+        }
+
         var dbController = ModelDbController(context)
         RestoreDbTask.performRestore(context, dbController)
+    }
+
+    /** DB file name for the grid described by the restored preferences file, if readable. */
+    private fun restoredGridDbName(context: Context): String? = try {
+        val xml = prefsFile(context).takeIf { it.exists() }?.readText()
+        if (xml == null) {
+            null
+        } else {
+            fun intPref(key: String, default: Int): Int =
+                Regex("<int name=\"$key\" value=\"(-?\\d+)\"").find(xml)
+                    ?.groupValues?.get(1)?.toIntOrNull() ?: default
+            val rows = intPref("pref_workspaceRows", 5)
+            val columns = intPref("pref_workspaceColumns", 4)
+            val hotseat = intPref("pref_hotseatColumns", 4)
+            "launcher_${rows}_${columns}_$hotseat.db"
+        }
+    } catch (t: Throwable) {
+        null
     }
 
     private suspend fun readZip(handlers: Map<String, suspend (InputStream) -> Unit>) {
@@ -114,6 +149,9 @@ class LawnchairBackup(
         const val SCREENSHOT_FILE_NAME = "screenshot.png"
         const val LAUNCHER_DB_FILE_NAME = "launcher.db"
         const val RESTORED_DB_FILE_NAME = "restored.db"
+
+        /** Marker left by [restore]; the next launch flags the DB restore as pending. */
+        const val PENDING_RESTORE_MARKER = "nomacast_pending_restore"
 
         const val INCLUDE_LAYOUT_AND_SETTINGS = 1 shl 0
         const val INCLUDE_WALLPAPER = 1 shl 1
