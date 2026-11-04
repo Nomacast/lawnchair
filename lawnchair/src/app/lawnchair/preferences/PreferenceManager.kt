@@ -76,7 +76,8 @@ class PreferenceManager private constructor(private val context: Context) :
     val recentActionOrder = StringPref("pref_recentActionOrder", "0,1,2,3,4", recreate)
 
     private val fontCache = FontCache.INSTANCE.get(context)
-    val fontWorkspace = FontPref("pref_workspaceFont", fontCache.uiText, recreate)
+    // Nomacast: icon labels use the system font (MiSans on HyperOS) by default
+    val fontWorkspace = FontPref("pref_workspaceFont", FontCache.SystemFont("sans-serif"), recreate)
     val fontHeading = FontPref("pref_fontHeading", fontCache.uiRegular, recreate)
     val fontHeadingMedium = FontPref("pref_fontHeadingMedium", fontCache.uiMedium, recreate)
     val fontBody = FontPref("pref_fontBody", fontCache.uiText, recreate)

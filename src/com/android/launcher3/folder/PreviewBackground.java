@@ -202,6 +202,22 @@ public class PreviewBackground extends DelegatedCellDrawing {
             mBgColor = ColorTokens.FolderPreviewColor.resolveColor(context);
         }
         mBgColor = ColorUtils.setAlphaComponent(mBgColor, LawnchairUtilsKt.getFolderPreviewAlpha(context));
+        // Nomacast: in the app drawer, folders sit on a soft translucent "card" instead of the
+        // flat grey disc, which reads cleaner on the drawer background.
+        try {
+            if (invalidateDelegate instanceof FolderIcon
+                    && ((FolderIcon) invalidateDelegate).mInfo != null
+                    && ((FolderIcon) invalidateDelegate).isInAppDrawer()) {
+                boolean dark = (context.getResources().getConfiguration().uiMode
+                        & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
+                        == android.content.res.Configuration.UI_MODE_NIGHT_YES;
+                mBgColor = dark
+                        ? ColorUtils.setAlphaComponent(android.graphics.Color.WHITE, 26)
+                        : ColorUtils.setAlphaComponent(android.graphics.Color.WHITE, 200);
+            }
+        } catch (Throwable ignored) {
+            // keep the default colour
+        }
         ta.recycle();
 
         DeviceProfile grid = activity.getDeviceProfile();
