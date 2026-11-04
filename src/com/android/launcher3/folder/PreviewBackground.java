@@ -204,10 +204,12 @@ public class PreviewBackground extends DelegatedCellDrawing {
         mBgColor = ColorUtils.setAlphaComponent(mBgColor, LawnchairUtilsKt.getFolderPreviewAlpha(context));
         // Nomacast: in the app drawer, folders sit on a soft translucent "card" instead of the
         // flat grey disc, which reads cleaner on the drawer background.
+        boolean inDrawer = false;
         try {
-            if (invalidateDelegate instanceof FolderIcon
+            inDrawer = invalidateDelegate instanceof FolderIcon
                     && ((FolderIcon) invalidateDelegate).mInfo != null
-                    && ((FolderIcon) invalidateDelegate).isInAppDrawer()) {
+                    && ((FolderIcon) invalidateDelegate).isInAppDrawer();
+            if (inDrawer) {
                 boolean dark = (context.getResources().getConfiguration().uiMode
                         & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
                         == android.content.res.Configuration.UI_MODE_NIGHT_YES;
@@ -225,6 +227,14 @@ public class PreviewBackground extends DelegatedCellDrawing {
 
         basePreviewOffsetX = (availableSpaceX - previewSize) / 2;
         basePreviewOffsetY = topPadding + grid.folderIconOffsetYPx;
+
+        // Nomacast: in the drawer the folder card is as big as the app icons next to it
+        // (the workspace preview size made the mini icons look squeezed).
+        if (inDrawer && grid.allAppsIconSizePx > previewSize) {
+            previewSize = grid.allAppsIconSizePx;
+            basePreviewOffsetX = (availableSpaceX - previewSize) / 2;
+            basePreviewOffsetY = topPadding;
+        }
 
         // Stroke width is 1dp
         mStrokeWidth = context.getResources().getDisplayMetrics().density;

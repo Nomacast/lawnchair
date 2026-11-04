@@ -34,7 +34,19 @@ class FontManager private constructor(private val context: Context) : SafeClosea
 
         val prefs = PreferenceManager.getInstance(context)
         return mapOf(
-            R.id.font_base_icon to FontSpec(prefs.fontWorkspace, sansSerif),
+            // Nomacast: icon labels use the system font (MiSans on HyperOS) instead of the
+            // bundled Inter, even when a restored backup still carries Inter as its choice.
+            R.id.font_base_icon to FontSpec(
+                {
+                    val chosen = prefs.fontWorkspace.get()
+                    if (chosen == fontCache.uiText || chosen == fontCache.uiRegular) {
+                        FontCache.SystemFont("sans-serif")
+                    } else {
+                        chosen
+                    }
+                },
+                sansSerif,
+            ),
             R.id.font_button to FontSpec(prefs.fontHeadingMedium, sansSerifMedium),
             R.id.font_heading to FontSpec(prefs.fontHeading, sansSerif),
             R.id.font_heading_medium to FontSpec(prefs.fontHeadingMedium, sansSerif),
